@@ -1,5 +1,7 @@
 # krux_sqs
 
+`krux_sqs` is a library that provides wrapper functions for common SQS usage. It uses `krux_boto` to connect to AWS SQS.
+
 ## Warning
 
 In the current version, `krux_sqs.sqs.Sqs` is only compatible with `krux_boto.boto.Boto3` object. Passing other objects, such as `krux_boto.boto.Boto`, will cause an exception.
