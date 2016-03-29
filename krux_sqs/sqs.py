@@ -89,7 +89,12 @@ class Sqs(object):
     A manager to handle all SQS related functions.
     Each instance is locked to a connection to a designated region (self.boto.cli_region).
     """
+
+    # This is the maximum allowed by Boto3
     MAX_RECEIVE_MESSAGES_NUM = 10
+    # Arbitrarily chosen
+    # According to AWS docs, the valid values are integers between 1 and 20:
+    # http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-long-polling.html
     MAX_RECEIVE_MESSAGES_WAIT = 10
 
     def __init__(
@@ -125,10 +130,14 @@ class Sqs(object):
         """
         Returns a list of messages in the given queue.
 
+        Note that not all messages may be returned:
+        http://boto3.readthedocs.org/en/latest/reference/services/sqs.html#SQS.Queue.receive_messages
+
+        Expects the body and body.Message to be stringified JSON values, and thus tries to parse it.
+        May throw simplejson.JSONDecodeError if unable to parse the values.
+
         :param queue_name: :py:class:`str` Name of the queue to get messages from.
         """
-        # GOTCHA: Note that not all messages may be returned
-        # http://boto3.readthedocs.org/en/latest/reference/services/sqs.html#SQS.Queue.receive_messages
         raw_messages = self._get_queue(queue_name).receive_messages(
             MaxNumberOfMessages=self.MAX_RECEIVE_MESSAGES_NUM,
             WaitTimeSeconds=self.MAX_RECEIVE_MESSAGES_WAIT
