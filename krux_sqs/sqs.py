@@ -121,7 +121,7 @@ class Sqs(object):
 
         :param queue_name: :py:class:`str` Name of the queue to get.
         """
-        if queue_name not in self._queues or self._queues[queue_name] is None:
+        if self._queues.get(queue_name, None) is None:
             self._queues[queue_name] = self._resource.get_queue_by_name(QueueName=queue_name)
 
         return self._queues[queue_name]
