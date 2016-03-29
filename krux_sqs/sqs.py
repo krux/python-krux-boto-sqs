@@ -142,6 +142,7 @@ class Sqs(object):
             MaxNumberOfMessages=self.MAX_RECEIVE_MESSAGES_NUM,
             WaitTimeSeconds=self.MAX_RECEIVE_MESSAGES_WAIT
         )
+        self._logger.debug('Recieved %s messages from %s queue', len(raw_messages), queue_name)
 
         result = []
         for msg in raw_messages:
@@ -170,6 +171,11 @@ class Sqs(object):
         """
         # GOTCHA: queue.delete_messages() does not handle an empty list
         if len(messages) > 0:
+            entries = [{'Id': msg['MessageId'], 'ReceiptHandle': msg['ReceiptHandle']} for msg in messages]
+
+            self._logger.debug('Removing following messages: %s', entries)
             self._get_queue(queue_name).delete_messages(
-                Entries=[{'Id': msg['MessageId'], 'ReceiptHandle': msg['ReceiptHandle']} for msg in messages]
+                Entries=entries
             )
+        else:
+            self._logger.debug('Messages list is empty. Not deleting any messages.')
