@@ -95,7 +95,7 @@ class Sqs(object):
     # Arbitrarily chosen
     # According to AWS docs, the valid values are integers between 1 and 20:
     # http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-long-polling.html
-    MAX_RECEIVE_MESSAGES_WAIT = 10
+    RECEIVE_MESSAGES_TIMEOUT = 10
 
     def __init__(
         self,
@@ -126,7 +126,7 @@ class Sqs(object):
 
         return self._queues[queue_name]
 
-    def get_messages(self, queue_name):
+    def get_messages(self, queue_name, num_msg=MAX_RECEIVE_MESSAGES_NUM, timeout=RECEIVE_MESSAGES_TIMEOUT):
         """
         Returns a list of messages in the given queue.
 
@@ -137,10 +137,12 @@ class Sqs(object):
         May throw simplejson.JSONDecodeError if unable to parse the values.
 
         :param queue_name: :py:class:`str` Name of the queue to get messages from.
+        :param num_msg: :py:class:`int` Maximum number of messages to get.
+        :param timeout: :py:class:`int` Timeout (in seconds) limit for receiving messages.
         """
         raw_messages = self._get_queue(queue_name).receive_messages(
-            MaxNumberOfMessages=self.MAX_RECEIVE_MESSAGES_NUM,
-            WaitTimeSeconds=self.MAX_RECEIVE_MESSAGES_WAIT
+            MaxNumberOfMessages=num_msg,
+            WaitTimeSeconds=timeout
         )
         self._logger.debug('Recieved %s messages from %s queue', len(raw_messages), queue_name)
 

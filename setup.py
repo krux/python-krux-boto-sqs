@@ -40,6 +40,7 @@ setup(
     ],
     entry_points={
         'console_scripts': [
+            'krux-sqs-test = krux_sqs.cli:main',
         ],
     },
     test_suite='test',
