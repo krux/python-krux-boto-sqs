@@ -96,6 +96,8 @@ class Sqs(object):
     # According to AWS docs, the valid values are integers between 1 and 20:
     # http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-long-polling.html
     RECEIVE_MESSAGES_TIMEOUT = 10
+    # Always receives all message attributes
+    DEFAULT_MESSAGE_ATTRIBUTE_NAME = ['All']
 
     def __init__(
         self,
@@ -126,21 +128,28 @@ class Sqs(object):
 
         return self._queues[queue_name]
 
-    def get_messages(self, queue_name, num_msg=MAX_RECEIVE_MESSAGES_NUM, timeout=RECEIVE_MESSAGES_TIMEOUT):
+    def get_messages(
+        self,
+        queue_name,
+        message_attribute_names=DEFAULT_MESSAGE_ATTRIBUTE_NAME,
+        num_msg=MAX_RECEIVE_MESSAGES_NUM,
+        timeout=RECEIVE_MESSAGES_TIMEOUT,
+        is_json=True,
+    ):
         """
         Returns a list of messages in the given queue.
 
         Note that not all messages may be returned:
         http://boto3.readthedocs.org/en/latest/reference/services/sqs.html#SQS.Queue.receive_messages
 
-        Expects the body and body.Message to be stringified JSON values, and thus tries to parse it.
-        May throw simplejson.JSONDecodeError if unable to parse the values.
-
         :param queue_name: :py:class:`str` Name of the queue to get messages from.
+        :param message_attribute_names: :py:class:`list` The names of the message attributes to receive. Refer to Boto3 doc for more info.
         :param num_msg: :py:class:`int` Maximum number of messages to get.
         :param timeout: :py:class:`int` Timeout (in seconds) limit for receiving messages.
+        :param is_json: :py:class:`bool` If True, assumes the body of the message is stringified JSON and tries to parse it. Leaves as string otherwise.
         """
         raw_messages = self._get_queue(queue_name).receive_messages(
+            MessageAttributeNames=message_attribute_names,
             MaxNumberOfMessages=num_msg,
             WaitTimeSeconds=timeout
         )
@@ -149,13 +158,15 @@ class Sqs(object):
         result = []
         for msg in raw_messages:
             # Parse the strings as JSON so that we can deal with them easier
-            body_dict = simplejson.loads(msg.body)
-            body_dict['Message'] = simplejson.loads(body_dict['Message'])
+            if is_json:
+                body = simplejson.loads(msg.body)
+            else:
+                body = msg.body
 
             msg_dict = {
                 'ReceiptHandle': msg.receipt_handle,
                 'MessageId': msg.message_id,
-                'Body': body_dict,
+                'Body': body,
                 'MessageAttributes': msg.message_attributes,
                 'QueueUrl': msg.queue_url,
                 'Attributes': msg.attributes,

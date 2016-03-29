@@ -58,6 +58,7 @@ class Application(krux_boto.cli.Application):
             queue_name=self.args.queue_name,
             num_msg=self.args.num_msg,
             timeout=self.args.timeout,
+            is_json=False,
         )
 
 
