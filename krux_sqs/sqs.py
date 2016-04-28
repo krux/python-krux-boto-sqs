@@ -84,6 +84,11 @@ def add_sqs_cli_arguments(parser, include_boto_arguments=True):
     group = get_group(parser, NAME)
 
 
+def sqs_send_message(queue_name, message):
+    """Utility function for sending SQS messages."""
+    Sqs(Boto3()).send_message(queue_name, message)
+
+
 class Sqs(object):
     """
     A manager to handle all SQS related functions.
@@ -192,3 +197,17 @@ class Sqs(object):
             )
         else:
             self._logger.debug('Messages list is empty. Not deleting any messages.')
+
+    def send_message(self, queue_name, message):
+        """
+        Send the given message to the given queue.
+
+        :param queue_name: :py:class:`str` Name of the queue to send messages.
+        :param message: :py:class:`dict` Message dict to send.
+        """
+        # GOTCHA: queue.delete_messages() does not handle an empty list
+        if message:
+            self._logger.debug('Send following message: %s', message)
+            self._get_queue(queue_name).send_message(MessageBody=simplejson.dumps(message))
+        else:
+            self._logger.debug('Message is empty. Not sending empty message.')

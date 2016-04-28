@@ -59,3 +59,7 @@ class SqsTest(unittest.TestCase):
         # let's leave it at this minimal state.
         messages = self._sqs.get_messages(self.TEST_QUEUE_NAME)
         self._sqs.delete_messages(self.TEST_QUEUE_NAME, messages)
+
+    def test_send_message(self):
+        message = {'test': 'test'}
+        self._sqs.send_message(self.TEST_QUEUE_NAME, message)
