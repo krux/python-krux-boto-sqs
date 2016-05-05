@@ -198,16 +198,18 @@ class Sqs(object):
         else:
             self._logger.debug('Messages list is empty. Not deleting any messages.')
 
-    def send_message(self, queue_name, message):
+    def send_message(self, queue_name, message, is_raw=False):
         """
         Send the given message to the given queue.
 
         :param queue_name: :py:class:`str` Name of the queue to send messages.
         :param message: :py:class:`dict` Message dict to send.
+        :param is_raw: :py:class:`bool` If True, assumes the body of the message is stringified JSON and sends it as is
         """
-        # GOTCHA: queue.delete_messages() does not handle an empty list
+        # GOTCHA: queue.send_message() does not handle an empty message
         if message:
+            message_body = message if is_raw else simplejson.dumps(message)
             self._logger.debug('Send following message: %s', message)
-            self._get_queue(queue_name).send_message(MessageBody=simplejson.dumps(message))
+            self._get_queue(queue_name).send_message(MessageBody=message_body)
         else:
             self._logger.debug('Message is empty. Not sending empty message.')
