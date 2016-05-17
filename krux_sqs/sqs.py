@@ -9,8 +9,7 @@
 
 from __future__ import absolute_import
 from abc import ABCMeta, abstractmethod
-import random
-import string
+import uuid
 
 #
 # Third party libraries
@@ -120,7 +119,7 @@ class Sqs(object):
 
     @staticmethod
     def _get_random_id():
-        return ''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(10))
+        return str(uuid.uuid4())[:8]
 
     def _get_queue(self, queue_name):
         """
