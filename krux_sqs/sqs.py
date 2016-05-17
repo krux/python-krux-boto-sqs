@@ -9,6 +9,8 @@
 
 from __future__ import absolute_import
 from abc import ABCMeta, abstractmethod
+import random
+import string
 
 #
 # Third party libraries
@@ -84,11 +86,6 @@ def add_sqs_cli_arguments(parser, include_boto_arguments=True):
     group = get_group(parser, NAME)
 
 
-def sqs_send_message(queue_name, message):
-    """Utility function for sending SQS messages."""
-    Sqs(Boto3()).send_message(queue_name, message)
-
-
 class Sqs(object):
     """
     A manager to handle all SQS related functions.
@@ -120,6 +117,10 @@ class Sqs(object):
 
         self._resource = boto.resource('sqs')
         self._queues = {}
+
+    @staticmethod
+    def _get_random_id():
+        return ''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(10))
 
     def _get_queue(self, queue_name):
         """
@@ -198,18 +199,31 @@ class Sqs(object):
         else:
             self._logger.debug('Messages list is empty. Not deleting any messages.')
 
-    def send_message(self, queue_name, message, is_raw=False):
+    def send_messages(self, queue_name, messages):
         """
-        Send the given message to the given queue.
+        Send the given list of messages to the given queue.
 
         :param queue_name: :py:class:`str` Name of the queue to send messages.
-        :param message: :py:class:`dict` Message dict to send.
-        :param is_raw: :py:class:`bool` If True, assumes the body of the message is stringified JSON and sends it as is
+        :param messages: :py:class:`list` List of message to send. If a message is dict, it will be stringified as JSON object.
         """
         # GOTCHA: queue.send_message() does not handle an empty message
-        if message:
-            message_body = message if is_raw else simplejson.dumps(message)
-            self._logger.debug('Send following message: %s', message)
-            self._get_queue(queue_name).send_message(MessageBody=message_body)
+        if messages:
+            entries = []
+
+            for message in messages:
+                if isinstance(message, dict):
+                    msg = simplejson.dumps(message)
+                elif isinstance(message, str):
+                    msg = message
+                else:
+                    raise TypeError('Message must be either a dictionary or a string')
+
+                entries.append({
+                    'Id': Sqs._get_random_id(),
+                    'MessageBody': msg,
+                })
+
+            self._logger.debug('Sending following messages: %s', entries)
+            self._get_queue(queue_name).send_messages(Entries=entries)
         else:
-            self._logger.debug('Message is empty. Not sending empty message.')
+            self._logger.debug('Message is empty. Not sending any messages.')
