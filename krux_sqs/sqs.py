@@ -9,6 +9,7 @@
 
 from __future__ import absolute_import
 from abc import ABCMeta, abstractmethod
+import uuid
 
 #
 # Third party libraries
@@ -116,6 +117,10 @@ class Sqs(object):
         self._resource = boto.resource('sqs')
         self._queues = {}
 
+    @staticmethod
+    def _get_random_id():
+        return str(uuid.uuid4())[:8]
+
     def _get_queue(self, queue_name):
         """
         Returns a queue with the given name.
@@ -192,3 +197,32 @@ class Sqs(object):
             )
         else:
             self._logger.debug('Messages list is empty. Not deleting any messages.')
+
+    def send_messages(self, queue_name, messages):
+        """
+        Send the given list of messages to the given queue.
+
+        :param queue_name: :py:class:`str` Name of the queue to send messages.
+        :param messages: :py:class:`list` List of message to send. If a message is dict, it will be stringified as JSON object.
+        """
+        # GOTCHA: queue.send_message() does not handle an empty message
+        if messages:
+            entries = []
+
+            for message in messages:
+                if isinstance(message, dict):
+                    msg = simplejson.dumps(message)
+                elif isinstance(message, str):
+                    msg = message
+                else:
+                    raise TypeError('Message must be either a dictionary or a string')
+
+                entries.append({
+                    'Id': Sqs._get_random_id(),
+                    'MessageBody': msg,
+                })
+
+            self._logger.debug('Sending following messages: %s', entries)
+            self._get_queue(queue_name).send_messages(Entries=entries)
+        else:
+            self._logger.debug('Message is empty. Not sending any messages.')

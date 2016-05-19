@@ -59,3 +59,12 @@ class SqsTest(unittest.TestCase):
         # let's leave it at this minimal state.
         messages = self._sqs.get_messages(self.TEST_QUEUE_NAME)
         self._sqs.delete_messages(self.TEST_QUEUE_NAME, messages)
+
+    def test_send_message(self):
+        """
+        SQS messages can be sent correctly
+        """
+        # TODO: This test needs to be improved using mock and stuff. But for the interest of time,
+        # let's leave it at this minimal state.
+        messages = [{'foo': 'bar'}, 'baz']
+        self._sqs.send_messages(self.TEST_QUEUE_NAME, messages)
