@@ -66,5 +66,8 @@ class SqsTest(unittest.TestCase):
         """
         # TODO: This test needs to be improved using mock and stuff. But for the interest of time,
         # let's leave it at this minimal state.
-        messages = [{'foo': 'bar'}, 'baz']
+        messages = [
+            {'foo': 'bar'}, 'baz', 'num3', 'num4', 'num5', 'num6', 'num7', 'num8', 'num9', 'num10',
+            'num11', 'num12'
+        ]
         self._sqs.send_messages(self.TEST_QUEUE_NAME, messages)
