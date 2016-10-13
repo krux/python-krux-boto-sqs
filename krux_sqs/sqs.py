@@ -93,6 +93,8 @@ class Sqs(object):
 
     # This is the maximum allowed by Boto3
     MAX_RECEIVE_MESSAGES_NUM = 10
+    MAX_SEND_MESSAGES_NUM = 10
+
     # Arbitrarily chosen
     # According to AWS docs, the valid values are integers between 1 and 20:
     # http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-long-polling.html
@@ -224,8 +226,8 @@ class Sqs(object):
 
             self._logger.debug('Sending following messages: %s', entries)
             q = self._get_queue(queue_name)
-            for i in xrange(0, len(entries), self.MAX_RECEIVE_MESSAGES_NUM):
-                chunk = entries[i:i + self.MAX_RECEIVE_MESSAGES_NUM]
+            for i in xrange(0, len(entries), self.MAX_SEND_MESSAGES_NUM):
+                chunk = entries[i:i + self.MAX_SEND_MESSAGES_NUM]
                 q.send_messages(Entries=chunk)
         else:
             self._logger.debug('Message is empty. Not sending any messages.')
