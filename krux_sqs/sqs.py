@@ -231,3 +231,36 @@ class Sqs(object):
                 q.send_messages(Entries=chunk)
         else:
             self._logger.debug('Message is empty. Not sending any messages.')
+
+    def send_messages_to_fifo(self, queue_name, messages, group_id):
+        """
+        Send the given list of messages to the given queue.
+
+        :param queue_name: :py:class:`str` Name of the queue to send messages.
+        :param messages: :py:class:`list` List of message to send. If a message is dict, it will be stringified as JSON object.
+        """
+        # GOTCHA: queue.send_message() does not handle an empty message
+        if messages:
+            entries = []
+
+            for message in messages:
+                if isinstance(message, dict):
+                    msg = simplejson.dumps(message)
+                elif isinstance(message, str):
+                    msg = message
+                else:
+                    raise TypeError('Message must be either a dictionary or a string')
+
+                entries.append({
+                    'Id': Sqs._get_random_id(),
+                    'MessageBody': msg,
+                    'MessageGroupId': group_id
+                })
+
+            self._logger.debug('Sending following messages: %s', entries)
+            q = self._get_queue(queue_name)
+            for i in xrange(0, len(entries), self.MAX_SEND_MESSAGES_NUM):
+                chunk = entries[i:i + self.MAX_SEND_MESSAGES_NUM]
+                q.send_messages(Entries=chunk)
+        else:
+            self._logger.debug('Message is empty. Not sending any messages.')
