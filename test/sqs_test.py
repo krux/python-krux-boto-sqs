@@ -20,7 +20,7 @@ import krux_sqs.sqs
 
 class SqsTest(unittest.TestCase):
     TEST_REGION = 'us-west-2'
-    TEST_QUEUE_NAME = 'jib-test'
+    TEST_QUEUE_NAME = 'seth-test-1'
 
     def setUp(self):
         self._sqs = krux_sqs.sqs.Sqs(
