@@ -220,17 +220,13 @@ class Sqs(object):
                 else:
                     raise TypeError('Message must be either a dictionary or a string')
 
-                if group_id is None:
-                    entries.append({
-                        'Id': Sqs._get_random_id(),
-                        'MessageBody': msg,
-                    })
-                else:
-                    entries.append({
-                        'Id': Sqs._get_random_id(),
-                        'MessageBody': msg,
-                        'MessageGroupId': group_id,
-                    })
+                entry = {
+                    'Id': Sqs._get_random_id(),
+                    'MessageBody': msg,
+                }
+                if group_id is not None:
+                    entry['MessageGroupId'] = group_id
+                entries.append(entry)
 
             self._logger.debug('Sending following messages: %s', entries)
             q = self._get_queue(queue_name)
