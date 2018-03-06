@@ -200,12 +200,13 @@ class Sqs(object):
         else:
             self._logger.debug('Messages list is empty. Not deleting any messages.')
 
-    def send_messages(self, queue_name, messages):
+    def send_messages(self, queue_name, messages, group_id=None):
         """
         Send the given list of messages to the given queue.
 
         :param queue_name: :py:class:`str` Name of the queue to send messages.
         :param messages: :py:class:`list` List of message to send. If a message is dict, it will be stringified as JSON object.
+        :param group_id: :py:class:`int` Message group id if send to FIFO queue.
         """
         # GOTCHA: queue.send_message() does not handle an empty message
         if messages:
@@ -219,10 +220,13 @@ class Sqs(object):
                 else:
                     raise TypeError('Message must be either a dictionary or a string')
 
-                entries.append({
+                entry = {
                     'Id': Sqs._get_random_id(),
                     'MessageBody': msg,
-                })
+                }
+                if group_id is not None:
+                    entry['MessageGroupId'] = group_id
+                entries.append(entry)
 
             self._logger.debug('Sending following messages: %s', entries)
             q = self._get_queue(queue_name)
