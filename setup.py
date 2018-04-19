@@ -38,7 +38,7 @@ setup(
     url=REPO_URL,
     download_url=DOWNLOAD_URL,
     license='All Rights Reserved.',
-    packages=find_packages(),
+    packages=find_packages(exclude=['tests']),
     install_requires=[
         'krux-boto',
     ],
