@@ -13,19 +13,23 @@ Package setup for krux-sqs
 from __future__ import absolute_import
 from setuptools import setup, find_packages
 
-# We use the version to construct the DOWNLOAD_URL.
-VERSION = '0.2.0'
+#
+# Internal libraries
+#
+
+from krux_sqs import __version__
+
 
 # URL to the repository on Github.
 REPO_URL = 'https://github.com/krux/python-krux-boto-sqs'
 # Github will generate a tarball as long as you tag your releases, so don't
 # forget to tag!
-DOWNLOAD_URL = ''.join((REPO_URL, '/tarball/release/', VERSION))
+DOWNLOAD_URL = ''.join((REPO_URL, '/tarball/release/', __version__))
 
 
 setup(
     name='krux-sqs',
-    version=VERSION,
+    version=__version__,
     author='Peter Han',
     author_email='phan@krux.com',
     maintainer='Peter Han',
@@ -34,7 +38,7 @@ setup(
     url=REPO_URL,
     download_url=DOWNLOAD_URL,
     license='All Rights Reserved.',
-    packages=find_packages(),
+    packages=find_packages(exclude=['tests']),
     install_requires=[
         'krux-boto',
     ],
