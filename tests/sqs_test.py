@@ -9,13 +9,14 @@
 
 from __future__ import absolute_import
 import unittest
+import uuid
 
 #
 # Third party libraries
 #
 
 from mock import MagicMock, patch
-import boto3
+import simplejson
 
 #
 # Internal libraries
@@ -24,22 +25,39 @@ import boto3
 from krux_boto.boto import Boto3
 from krux_sqs.sqs import Sqs
 
+
 class SqsTest(unittest.TestCase):
     TEST_REGION = 'us-west-2'
-    TEST_QUEUE_NAME = 'seth-test-1'
+    TEST_QUEUE_NAME = 'test-queue'
+
+    TEST_RECEIPT_HANDLE = 't3st+R3c31pt/H4nDle'
+    TEST_MESSAGE_ID = uuid.uuid4()
+    TEST_BODY = {'foo': 'bar'}
+    TEST_MESSAGE = MagicMock(
+        receipt_handle=TEST_RECEIPT_HANDLE,
+        message_id=TEST_MESSAGE_ID,
+        body=simplejson.dumps(TEST_BODY),
+        message_attributes=None,
+        queue_url='https://queue.amazonaws.com/12345/' + TEST_QUEUE_NAME,
+        attributes=None,
+    )
 
     def setUp(self):
         self._logger = MagicMock()
         self._stats = MagicMock()
 
-        self._resource = MagicMock()
+        self._resource = MagicMock(
+            spec=Boto3().resource('sqs')
+        )
         self._boto = MagicMock(
             spec=Boto3,
             resource=MagicMock(return_value=self._resource),
         )
 
         self._sqs = Sqs(
-            boto=self._boto
+            boto=self._boto,
+            logger=self._logger,
+            stats=self._stats,
         )
 
     def test_init(self):
@@ -84,28 +102,70 @@ class SqsTest(unittest.TestCase):
 
         self.assertFalse(self._resource.get_queue_by_name.called)
 
-    @unittest.skip("Test queue missing. Skip for now.")
-    def test_get_messages(self):
+    def test_get_messages_json(self):
         """
-        SQS messages are received and converted into dictionary correctly
+        Sqs.get_messages() correctly receives messages and converts them into dictionary
         """
-        # TODO: This test needs to be improved using mock and stuff. But for the interest of time,
-        # let's leave it at this minimal state.
-        messages = self._sqs.get_messages(self.TEST_QUEUE_NAME)
-        self.assertIsInstance(messages, list)
+        receive_messages = self._resource.get_queue_by_name.return_value.receive_messages
+        receive_messages.return_value = [SqsTest.TEST_MESSAGE]
+        expected = [{
+            'ReceiptHandle': SqsTest.TEST_MESSAGE.receipt_handle,
+            'MessageId': SqsTest.TEST_MESSAGE.message_id,
+            'Body': SqsTest.TEST_BODY,
+            'MessageAttributes': SqsTest.TEST_MESSAGE.message_attributes,
+            'QueueUrl': SqsTest.TEST_MESSAGE.queue_url,
+            'Attributes': SqsTest.TEST_MESSAGE.attributes,
+        }]
 
-        for msg in messages:
-            self.assertIn('ReceiptHandle', msg)
-            self.assertIsInstance(msg['ReceiptHandle'], str)
-            self.assertIn('MessageId', msg)
-            self.assertIsInstance(msg['MessageId'], str)
-            self.assertIn('Body', msg)
-            self.assertIsInstance(msg['Body'], dict)
-            self.assertIn('Message', msg['Body'])
-            self.assertIsInstance(msg['Body']['Message'], dict)
-            self.assertIn('MessageAttributes', msg)
-            self.assertIn('QueueUrl', msg)
-            self.assertIn('Attributes', msg)
+        self.assertEqual(expected, self._sqs.get_messages(queue_name=SqsTest.TEST_QUEUE_NAME, is_json=True))
+
+        self._resource.get_queue_by_name.assert_called_once_with(QueueName=SqsTest.TEST_QUEUE_NAME)
+        receive_messages.assert_called_once_with(
+            MessageAttributeNames=Sqs.DEFAULT_MESSAGE_ATTRIBUTE_NAME,
+            MaxNumberOfMessages=Sqs.MAX_RECEIVE_MESSAGES_NUM,
+            WaitTimeSeconds=Sqs.RECEIVE_MESSAGES_TIMEOUT,
+        )
+        self._logger.debug.assert_called_once_with(
+            'Recieved %s messages from %s queue', 1, SqsTest.TEST_QUEUE_NAME
+        )
+
+    def test_get_messages_params(self):
+        """
+        Sqs.get_messages() correctly sends the parameters to Boto
+        """
+        attributes = []
+        num_msg = 2
+        timeout = 4
+
+        self._sqs.get_messages(
+            queue_name=SqsTest.TEST_QUEUE_NAME,
+            message_attribute_names=attributes,
+            num_msg=num_msg,
+            timeout=timeout,
+            is_json=True,
+        )
+
+        self._resource.get_queue_by_name.return_value.receive_messages.assert_called_once_with(
+            MessageAttributeNames=attributes,
+            MaxNumberOfMessages=num_msg,
+            WaitTimeSeconds=timeout,
+        )
+
+    def test_get_messages_no_json(self):
+        """
+        Sqs.get_messages() correctly leaves the body as is when `is_json` is set to False
+        """
+        self._resource.get_queue_by_name.return_value.receive_messages.return_value = [SqsTest.TEST_MESSAGE]
+        expected = [{
+            'ReceiptHandle': SqsTest.TEST_MESSAGE.receipt_handle,
+            'MessageId': SqsTest.TEST_MESSAGE.message_id,
+            'Body': SqsTest.TEST_MESSAGE.body,
+            'MessageAttributes': SqsTest.TEST_MESSAGE.message_attributes,
+            'QueueUrl': SqsTest.TEST_MESSAGE.queue_url,
+            'Attributes': SqsTest.TEST_MESSAGE.attributes,
+        }]
+
+        self.assertEqual(expected, self._sqs.get_messages(queue_name=SqsTest.TEST_QUEUE_NAME, is_json=False))
 
     @unittest.skip("Test queue missing. Skip for now.")
     def test_delete_messages(self):
