@@ -31,7 +31,7 @@ class SqsTest(unittest.TestCase):
     TEST_QUEUE_NAME = 'test-queue'
 
     TEST_RECEIPT_HANDLE = 't3st+R3c31pt/H4nDle'
-    TEST_MESSAGE_ID = uuid.uuid4()
+    TEST_MESSAGE_ID = str(uuid.uuid4())
     TEST_BODY = {'foo': 'bar'}
     TEST_MESSAGE = MagicMock(
         receipt_handle=TEST_RECEIPT_HANDLE,
@@ -167,15 +167,41 @@ class SqsTest(unittest.TestCase):
 
         self.assertEqual(expected, self._sqs.get_messages(queue_name=SqsTest.TEST_QUEUE_NAME, is_json=False))
 
-    @unittest.skip("Test queue missing. Skip for now.")
     def test_delete_messages(self):
         """
-        SQS messages can be deleted correctly
+        Sqs.delete_messages() correctly deletes given messages
         """
-        # TODO: This test needs to be improved using mock and stuff. But for the interest of time,
-        # let's leave it at this minimal state.
-        messages = self._sqs.get_messages(self.TEST_QUEUE_NAME)
-        self._sqs.delete_messages(self.TEST_QUEUE_NAME, messages)
+        messages = [{
+            'MessageId': SqsTest.TEST_MESSAGE_ID,
+            'ReceiptHandle': SqsTest.TEST_RECEIPT_HANDLE,
+        }, {
+            'MessageId': str(SqsTest.TEST_MESSAGE_ID) + '1',
+            'ReceiptHandle': SqsTest.TEST_RECEIPT_HANDLE + '1',
+        }]
+
+        self._sqs.delete_messages(SqsTest.TEST_QUEUE_NAME, messages)
+
+        entries = [{
+            'Id': SqsTest.TEST_MESSAGE_ID,
+            'ReceiptHandle': SqsTest.TEST_RECEIPT_HANDLE,
+        }, {
+            'Id': SqsTest.TEST_MESSAGE_ID + '1',
+            'ReceiptHandle': SqsTest.TEST_RECEIPT_HANDLE + '1',
+        }]
+        self._resource.get_queue_by_name.return_value.delete_messages.assert_called_once_with(
+            Entries=entries
+        )
+
+        self._logger.debug.assert_called_once_with('Removing following messages: %s', entries)
+
+    def test_delete_messages_empty(self):
+        """
+        Sqs.delete_messages() correctly does nothing for no messages
+        """
+        self._sqs.delete_messages(SqsTest.TEST_QUEUE_NAME, [])
+
+        self._logger.debug.assert_called_once_with('Messages list is empty. Not deleting any messages.')
+        self.assertFalse(self._resource.get_queue_by_name.return_value.delete_messages.called)
 
     @unittest.skip("Test queue missing. Skip for now.")
     def test_send_message(self):
