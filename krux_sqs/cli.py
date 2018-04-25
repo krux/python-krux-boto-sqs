@@ -38,10 +38,10 @@ class Application(krux_boto.cli.Application):
         add_sqs_cli_arguments(parser, include_boto_arguments=False)
 
     def run(self):
-        print self.sqs.get_messages(
+        print(self.sqs.get_messages(
             queue_name='testQueue',
             is_json=False,
-        )
+        ))
 
 
 def main():
