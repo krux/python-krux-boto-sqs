@@ -10,12 +10,13 @@
 from __future__ import absolute_import
 import unittest
 import uuid
+import string
 
 #
 # Third party libraries
 #
 
-from mock import MagicMock, patch
+from mock import MagicMock, patch, call
 import simplejson
 
 #
@@ -41,6 +42,8 @@ class SqsTest(unittest.TestCase):
         queue_url='https://queue.amazonaws.com/12345/' + TEST_QUEUE_NAME,
         attributes=None,
     )
+
+    TEST_GROUP_ID = 5
 
     def setUp(self):
         self._logger = MagicMock()
@@ -76,6 +79,18 @@ class SqsTest(unittest.TestCase):
             Sqs(
                 boto=MagicMock()
             )
+
+    def test_get_random_id(self):
+        """
+        Sqs._get_random_id() correctly generate a random string
+        """
+        # TODO: Need a way to determine whether this is really a *random* string
+        random_chars = string.ascii_lowercase + string.digits
+
+        str = self._sqs._get_random_id()
+
+        # Verify all characters are alphanumeric
+        self.assertTrue(all(char in random_chars for char in str))
 
     def test_get_queue_no_cache(self):
         """
@@ -203,15 +218,77 @@ class SqsTest(unittest.TestCase):
         self._logger.debug.assert_called_once_with('Messages list is empty. Not deleting any messages.')
         self.assertFalse(self._resource.get_queue_by_name.return_value.delete_messages.called)
 
-    @unittest.skip("Test queue missing. Skip for now.")
-    def test_send_message(self):
+    def test_send_messages(self):
         """
-        SQS messages can be sent correctly
+        Sqs.send_messages() correctly sends given messages
         """
-        # TODO: This test needs to be improved using mock and stuff. But for the interest of time,
-        # let's leave it at this minimal state.
-        messages = [
-            {'foo': 'bar'}, 'baz', 'num3', 'num4', 'num5', 'num6', 'num7', 'num8', 'num9', 'num10',
-            'num11', 'num12'
+        dict_msg = {'foo': 'bar'}
+        str_msg = 'baz'
+        messages = [dict_msg, str_msg]
+        sqs_msgs = [
+            {'Id': SqsTest.TEST_MESSAGE_ID, 'MessageBody': simplejson.dumps(dict_msg)},
+            {'Id': SqsTest.TEST_MESSAGE_ID, 'MessageBody': str_msg},
         ]
-        self._sqs.send_messages(self.TEST_QUEUE_NAME, messages)
+
+        with patch('krux_sqs.sqs.Sqs._get_random_id', return_value=SqsTest.TEST_MESSAGE_ID):
+            self._sqs.send_messages(SqsTest.TEST_QUEUE_NAME, messages)
+
+        self._resource.get_queue_by_name.return_value.send_messages.assert_called_once_with(
+            Entries=sqs_msgs
+        )
+        self._logger.debug.assert_called_once_with('Sending following messages: %s', sqs_msgs)
+
+    def test_send_messages_empty(self):
+        """
+        Sqs.send_messages() correctly does nothing for no messages
+        """
+        self._sqs.send_messages(SqsTest.TEST_QUEUE_NAME, [])
+
+        self._logger.debug.assert_called_once_with('Message is empty. Not sending any messages.')
+        self.assertFalse(self._resource.get_queue_by_name.return_value.send_messages.called)
+
+    def test_send_messages_invalid_type(self):
+        """
+        Sqs.send_messages() correctly errors upon invalid message type
+        """
+        with self.assertRaises(TypeError) as e:
+            self._sqs.send_messages(SqsTest.TEST_QUEUE_NAME, [1])
+
+        self.assertEqual('Message must be either a dictionary or a string', str(e.exception))
+
+    def test_send_messages_chunk(self):
+        """
+        Sqs.send_messages() correctly divides up messages in chunks
+        """
+        iteration = 2
+        messages = [str(i) for i in range(0, Sqs.MAX_SEND_MESSAGES_NUM * iteration)]
+
+        with patch('krux_sqs.sqs.Sqs._get_random_id', return_value=SqsTest.TEST_MESSAGE_ID):
+            self._sqs.send_messages(SqsTest.TEST_QUEUE_NAME, messages)
+
+        send_calls = []
+        for i in range(0, iteration):
+            sqs_msgs = [
+                {'Id': SqsTest.TEST_MESSAGE_ID, 'MessageBody': msg}
+                for msg in messages[Sqs.MAX_SEND_MESSAGES_NUM * i:Sqs.MAX_SEND_MESSAGES_NUM * (i + 1)]
+            ]
+            send_calls.append(call(Entries=sqs_msgs))
+
+        self.assertEqual(send_calls, self._resource.get_queue_by_name.return_value.send_messages.call_args_list)
+
+    def test_send_messages_group_id(self):
+        """
+        Sqs.send_messages() correctly sends given group ID if provided
+        """
+        messages = ['foo']
+        sqs_msgs = [
+            {'Id': SqsTest.TEST_MESSAGE_ID, 'MessageBody': msg, 'MessageGroupId': SqsTest.TEST_GROUP_ID}
+            for msg in messages
+        ]
+
+        with patch('krux_sqs.sqs.Sqs._get_random_id', return_value=SqsTest.TEST_MESSAGE_ID):
+            self._sqs.send_messages(SqsTest.TEST_QUEUE_NAME, messages, SqsTest.TEST_GROUP_ID)
+
+        self._resource.get_queue_by_name.return_value.send_messages.assert_called_once_with(
+            Entries=sqs_msgs
+        )
