@@ -1,11 +1,11 @@
 [[source]]
 url = "${KRUX_PIP_PROP_URL}"
-verify_ssl = false
+verify_ssl = true
 name = "kruxprop"
 
 [[source]]
 url = "${KRUX_PIP_FOSS_URL}"
-verify_ssl = false
+verify_ssl = true
 name = "kruxfoss"
 
 [[source]]
