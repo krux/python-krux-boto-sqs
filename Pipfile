@@ -14,13 +14,13 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-krux-boto = "==1.5.1"
-simplejson = "==3.13.2"
+krux-boto = {version="==1.5.1", index="kruxfoss"}
+simplejson = {version="==3.13.2", index="pypi"}
 
 [dev-packages]
-coverage = "*"
-mock = "*"
-nose = "*"
+coverage = {version="*", index="pypi"}
+mock = {version="*", index="pypi"}
+nose = {version="*", index="pypi"}
 
 [requires]
 python_version = "2.7"
