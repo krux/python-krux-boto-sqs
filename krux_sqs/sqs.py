@@ -15,6 +15,7 @@ import uuid
 #
 
 import simplejson
+import six
 
 #
 # Internal libraries
@@ -229,7 +230,7 @@ class Sqs(object):
 
             self._logger.debug('Sending following messages: %s', entries)
             q = self._get_queue(queue_name)
-            for i in xrange(0, len(entries), self.MAX_SEND_MESSAGES_NUM):
+            for i in six.moves.range(0, len(entries), self.MAX_SEND_MESSAGES_NUM):
                 chunk = entries[i:i + self.MAX_SEND_MESSAGES_NUM]
                 q.send_messages(Entries=chunk)
         else:
