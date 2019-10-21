@@ -23,7 +23,7 @@ import six
 
 from krux.logging import get_logger
 from krux.stats import get_stats
-from krux.cli import get_parser, get_group
+from krux.cli import get_parser
 from krux_boto.boto import Boto3, add_boto_cli_arguments
 
 
@@ -80,9 +80,6 @@ def add_sqs_cli_arguments(parser, include_boto_arguments=True):
 
         # Add all the boto arguments
         add_boto_cli_arguments(parser)
-
-    # Add those specific to the application
-    group = get_group(parser, NAME)
 
 
 class Sqs(object):
