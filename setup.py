@@ -64,4 +64,5 @@ setup(
     extras_require={
         'dev': TEST_REQUIREMENTS + LINT_REQUIREMENTS,
     },
+    python_requires='<4',
 )
