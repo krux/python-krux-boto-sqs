@@ -28,7 +28,7 @@ REPO_URL = 'https://github.com/krux/python-krux-boto-sqs'
 DOWNLOAD_URL = ''.join((REPO_URL, '/tarball/release/', __version__))
 
 REQUIREMENTS = ['krux-boto', 'simplejson', 'six']
-TEST_REQUIREMENTS = ['coverage', 'mock', 'nose']
+TEST_REQUIREMENTS = ['coverage', 'mock', 'pytest', 'pytest-runner', 'pytest-cov', 'pytest-flake8']
 LINT_REQUIREMENTS = ['flake8']
 
 
@@ -64,4 +64,5 @@ setup(
     extras_require={
         'dev': TEST_REQUIREMENTS + LINT_REQUIREMENTS,
     },
+    python_requires='<4',
 )

@@ -23,7 +23,7 @@ import six
 
 from krux.logging import get_logger
 from krux.stats import get_stats
-from krux.cli import get_parser, get_group
+from krux.cli import get_parser
 from krux_boto.boto import Boto3, add_boto_cli_arguments
 
 
@@ -81,9 +81,6 @@ def add_sqs_cli_arguments(parser, include_boto_arguments=True):
         # Add all the boto arguments
         add_boto_cli_arguments(parser)
 
-    # Add those specific to the application
-    group = get_group(parser, NAME)
-
 
 class Sqs(object):
     """
@@ -108,6 +105,15 @@ class Sqs(object):
         logger=None,
         stats=None,
     ):
+        """
+        Basic init
+        :param boto: Boto object to be used as an API library to talk to AWS
+        :type boto: krux_boto.boto.Boto3
+        :param logger: Logger, recommended to be obtained using krux.cli.Application
+        :type logger: logging.Logger
+        :param stats: Stats, recommended to be obtained using krux.cli.Application
+        :type stats: kruxstatsd.StatsClient
+        """
         # Private variables, not to be used outside this module
         self._name = NAME
         self._logger = logger or get_logger(self._name)
@@ -128,7 +134,8 @@ class Sqs(object):
         Returns a queue with the given name.
         The queue is fetched on the first call (lazy) and cached.
 
-        :param queue_name: :py:class:`str` Name of the queue to get.
+        :param queue_name: Name of the queue to get.
+        :type queue_name: str
         """
         if self._queues.get(queue_name, None) is None:
             self._queues[queue_name] = self._resource.get_queue_by_name(QueueName=queue_name)
@@ -149,11 +156,20 @@ class Sqs(object):
         Note that not all messages may be returned:
         http://boto3.readthedocs.org/en/latest/reference/services/sqs.html#SQS.Queue.receive_messages
 
-        :param queue_name: :py:class:`str` Name of the queue to get messages from.
-        :param message_attribute_names: :py:class:`list` The names of the message attributes to receive. Refer to Boto3 doc for more info.
-        :param num_msg: :py:class:`int` Maximum number of messages to get.
-        :param timeout: :py:class:`int` Timeout (in seconds) limit for receiving messages.
-        :param is_json: :py:class:`bool` If True, assumes the body of the message is stringified JSON and tries to parse it. Leaves as string otherwise.
+        :param queue_name: Name of the queue to get messages from.
+        :type queue_name: str
+        :param message_attribute_names: The names of the message attributes to receive.
+                                        Refer to Boto3 doc for more info.
+        :type message_attribute_names: list
+        :param num_msg: Maximum number of messages to get.
+        :type num_msg: int
+        :param timeout: Timeout (in seconds) limit for receiving messages.
+        :type timeout: int
+        :param is_json: If True, assumes the body of the message is stringified JSON and tries to parse it.
+                        Leaves as string otherwise.
+        :type is_json: bool
+        :return: List of messages from the given SQS queue
+        :rtype: list[dict[str, Any]]
         """
         raw_messages = self._get_queue(queue_name).receive_messages(
             MessageAttributeNames=message_attribute_names,
@@ -186,8 +202,11 @@ class Sqs(object):
         """
         Deletes the given list of messages from the given queue.
 
-        :param queue_name: :py:class:`str` Name of the queue to delete messages from.
-        :param messages: :py:class:`list` List of messages returned by get_messages().
+        :param queue_name: Name of the queue to delete messages from.
+        :type queue_name: str
+        :param messages: List of messages returned by get_messages().
+        :type messages: list
+        :rtype: None
         """
         # GOTCHA: queue.delete_messages() does not handle an empty list
         if len(messages) > 0:
@@ -204,9 +223,13 @@ class Sqs(object):
         """
         Send the given list of messages to the given queue.
 
-        :param queue_name: :py:class:`str` Name of the queue to send messages.
-        :param messages: :py:class:`list` List of message to send. If a message is dict, it will be stringified as JSON object.
-        :param group_id: :py:class:`int` Message group id if send to FIFO queue.
+        :param queue_name: Name of the queue to send messages.
+        :type queue_name: str
+        :param messages: List of message to send. If a message is dict, it will be stringified as JSON object.
+        :type messages: list | str
+        :param group_id: Message group id if send to FIFO queue.
+        :type group_id: int
+        :rtype: None
         """
         # GOTCHA: queue.send_message() does not handle an empty message
         if messages:
