@@ -1,0 +1,19 @@
+[[source]]
+url = "${KRUX_PIP_FOSS_URL}"
+verify_ssl = true
+name = "kruxfoss"
+
+[[source]]
+url = "https://${ARTIFACTORY_USER}:${ARTIFACTORY_PASSWORD}@kruxmvn.jfrog.io/artifactory/api/pypi/pypi/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+krux-boto = "==1.7.4"
+future = "*"
+simplejson = "*"
+
+[dev-packages]
+coverage = "*"
+mock = "*"
+nose = "==1.3.7"
