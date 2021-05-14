@@ -4,7 +4,8 @@ verify_ssl = true
 name = "kruxfoss"
 
 [[source]]
-url = "https://${ARTIFACTORY_USER}:${ARTIFACTORY_PASSWORD}@kruxmvn.jfrog.io/artifactory/api/pypi/pypi/simple"
+# Note - set this env variable to https://pypi.org/simple or a mirror
+url = "${PIPENV_PYPI_MIRROR}"
 verify_ssl = true
 name = "pypi"
 
